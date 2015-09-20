@@ -1,3 +1,5 @@
+# Copyright (c) 2015 torque. See LICENSE for details.
+
 `#target illustrator`
 `#targetengine main`
 

@@ -1,3 +1,5 @@
+# Copyright (c) 2015 torque. See LICENSE for details.
+
 # note: \" in double quoted strings (i.e. escaped double quotes) cause
 # script execution to fail completely, probably due to them not being
 # escaped properly when stringifying the main function.
