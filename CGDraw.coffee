@@ -104,7 +104,6 @@ CGDraw = ( options ) ->
 		indent:     ""
 
 		constructor: ( options ) ->
-			{ ctx: @context, bnd: @bounds } = options
 
 			switch options.type
 				when 'SVG'
@@ -128,6 +127,8 @@ CGDraw = ( options ) ->
 						@result.join "\n"
 
 				when 'CoreGraphics'
+					{ ctx: @context, bnd: @bounds } = options
+
 					if "swift" is options.lang
 						@initClosure = @initClosureSwift
 					else
@@ -190,7 +191,7 @@ CGDraw = ( options ) ->
 				\tlet verticalRatio: CGFloat = #{@bounds}.size.height/#{doc.height}
 				\tlet horizontalRatio: CGFloat = #{@bounds}.size.width/#{doc.width}
 				\tlet scale: CGFloat = verticalRatio < horizontalRatio ? verticalRatio : horizontalRatio
-				\tCGContextTranslateCTM(context, (bounds.size.width-#{doc.width}*scale)*0.5, (bounds.size.height-#{doc.height}*scale)*0.5)
+				\tCGContextTranslateCTM(#{@context}, (#{@bounds}.size.width-#{doc.width}*scale)*0.5, (#{@bounds}.size.height-#{doc.height}*scale)*0.5)
 				\tCGContextScaleCTM(#{@context}, scale, scale)
 			"""
 
@@ -200,7 +201,7 @@ CGDraw = ( options ) ->
 				\tconst CGFloat verticalRatio   = #{@bounds}.size.height/#{doc.height};
 				\tconst CGFloat horizontalRatio = #{@bounds}.size.width/#{doc.width};
 				\tconst CGFloat scale = verticalRatio < horizontalRatio ? verticalRatio : horizontalRatio;
-				\tCGContextTranslateCTM(context, (bounds.size.width-#{doc.width}*scale)*0.5, (bounds.size.height-#{doc.height}*scale)*0.5);
+				\tCGContextTranslateCTM(#{@context}, (#{@bounds}.size.width-#{doc.width}*scale)*0.5, (#{@bounds}.size.height-#{doc.height}*scale)*0.5);
 				\tCGContextScaleCTM(#{@context}, scale, scale);
 			"""
 
