@@ -1,3 +1,6 @@
+# note: \" in double quoted strings (i.e. escaped double quotes) cause
+# script execution to fail completely, probably due to them not being
+# escaped properly when stringifying the main function.
 CGDraw = ( options ) ->
 	app.userInteractionLevel = UserInteractionLevel.DISPLAYALERTS
 	pWin = new Window "palette"
@@ -64,19 +67,19 @@ CGDraw = ( options ) ->
 
 	# for CoreGraphics on iOS, the origin is the top-left corner.
 	IOS_fixCoords = ( coordArr ) ->
-		coordArr[0] = round2 coordArr[0] + org[0]
-		coordArr[1] = round2 doc.height - (org[1] + coordArr[1])
+		coordArr[0] = round2 (coordArr[0] + org[0])*@scaleX
+		coordArr[1] = round2 (doc.height - (org[1] + coordArr[1]))*@scaleY
 		coordArr.join " "
 
 	# for CoreGraphics on mac, the origin is the bottom-left corner.
 	Mac_fixCoords = ( coordArr ) ->
-		coordArr[0] = round2 coordArr[0] + org[0]
-		coordArr[1] = round2 coordArr[1] + org[1]
+		coordArr[0] = round2 (coordArr[0] + org[0])*@scaleX
+		coordArr[1] = round2 (coordArr[1] + org[1])*@scaleY
 		coordArr.join ", "
 
 	SVG_fixCoords = ( coordArr ) ->
-		coordArr[0] = round2 coordArr[0] + org[0]
-		coordArr[1] = round2 doc.height - (org[1] + coordArr[1])
+		coordArr[0] = round2 (coordArr[0] + org[0])*@scaleX
+		coordArr[1] = round2 (doc.height - (org[1] + coordArr[1]))*@scaleY
 		coordArr.join ","
 
 	checkLinear = ( currPoint, prevPoint ) ->
@@ -104,6 +107,18 @@ CGDraw = ( options ) ->
 		indent:     ""
 
 		constructor: ( options ) ->
+			width = +options.width
+			height = +options.height
+
+			if width and height
+				@scaleX = width/doc.width
+				@scaleY = height/doc.height
+			else if width and not height
+				@scaleY = @scaleX = width/doc.width
+			else if height and not width
+				@scaleX = @scaleY = height/doc.height
+			else
+				@scaleY = @scaleX = 1
 
 			switch options.type
 				when 'SVG'
@@ -112,7 +127,7 @@ CGDraw = ( options ) ->
 					@cubic = SVG_cubic
 
 					@start = ->
-						@appendLine "<svg viewBox='0 0 #{doc.width} #{doc.height}' version='1.1' xmlns='http://www.w3.org/2000/svg'>"
+						@appendLine "<svg viewBox='0 0 #{doc.width*@scaleX} #{doc.height*@scaleY}' version='1.1' xmlns='http://www.w3.org/2000/svg'>"
 						@indent = "\t"
 
 					@appendPath = @appendPathSVG
@@ -188,20 +203,20 @@ CGDraw = ( options ) ->
 		initClosureSwift: ->
 			@result.push """
 				{ #{@context}, #{@bounds} in
-				\tlet verticalRatio: CGFloat = #{@bounds}.size.height/#{doc.height}
-				\tlet horizontalRatio: CGFloat = #{@bounds}.size.width/#{doc.width}
+				\tlet verticalRatio: CGFloat = #{@bounds}.size.height/#{doc.height*@scaleY}
+				\tlet horizontalRatio: CGFloat = #{@bounds}.size.width/#{doc.width*@scaleX}
 				\tlet scale: CGFloat = verticalRatio < horizontalRatio ? verticalRatio : horizontalRatio
-				\tCGContextTranslateCTM(#{@context}, (#{@bounds}.size.width-#{doc.width}*scale)*0.5, (#{@bounds}.size.height-#{doc.height}*scale)*0.5)
+				\tCGContextTranslateCTM(#{@context}, (#{@bounds}.size.width-#{doc.width*@scaleX}*scale)*0.5, (#{@bounds}.size.height-#{doc.height*@scaleY}*scale)*0.5)
 				\tCGContextScaleCTM(#{@context}, scale, scale)
 			"""
 
 		initClosureObjC: ->
 			@result.push """
 				^(CGContextRef #{@context}, CGRect #{@bounds}) {
-				\tconst CGFloat verticalRatio   = #{@bounds}.size.height/#{doc.height};
-				\tconst CGFloat horizontalRatio = #{@bounds}.size.width/#{doc.width};
+				\tconst CGFloat verticalRatio   = #{@bounds}.size.height/#{doc.height*@scaleY};
+				\tconst CGFloat horizontalRatio = #{@bounds}.size.width/#{doc.width*@scaleX};
 				\tconst CGFloat scale = verticalRatio < horizontalRatio ? verticalRatio : horizontalRatio;
-				\tCGContextTranslateCTM(#{@context}, (#{@bounds}.size.width-#{doc.width}*scale)*0.5, (#{@bounds}.size.height-#{doc.height}*scale)*0.5);
+				\tCGContextTranslateCTM(#{@context}, (#{@bounds}.size.width-#{doc.width*@scaleX}*scale)*0.5, (#{@bounds}.size.height-#{doc.height*@scaleY}*scale)*0.5);
 				\tCGContextScaleCTM(#{@context}, scale, scale);
 			"""
 
