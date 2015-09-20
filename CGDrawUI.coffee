@@ -6,7 +6,7 @@ win = new Window "palette", "CGDraw" , undefined, {}
 win.outputBox = win.add "edittext", [0, 0, 280, 80], "", {multiline: true}
 win.outputBox.text = "Results go here."
 
-win.outputType = win.add "dropdownlist", [0, 0, 280, 20], ["CoreGraphics"]
+win.outputType = win.add "dropdownlist", [0, 0, 280, 20], ["CoreGraphics", "SVG"]
 win.outputType.selection = 0
 
 win.wrap = win.add """

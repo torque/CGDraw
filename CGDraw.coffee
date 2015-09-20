@@ -28,6 +28,9 @@ CGDraw = ( options ) ->
 				value: "#{r}, #{g}, #{b}, "
 			}
 
+		RGBColorSVG: ( color ) ->
+			"rgba(" + "#{Math.round color.red},#{Math.round color.green},#{Math.round color.blue},".toUpperCase( )
+
 		GrayColor: ( color ) ->
 			# CGContextSetGrayFillColor
 			pct = (100 - color.gray)/100
@@ -35,6 +38,10 @@ CGDraw = ( options ) ->
 				type: "Gray"
 				value: "#{pct}, #{pct}, #{pct}, "
 			}
+
+		GrayColorSVG: ( color ) ->
+			value = Math.round (100 - color.gray)*255/100
+			"rgba(" + "#{value},#{value},#{value},".toUpperCase( )
 
 		# The CMYK colors that CG displays do not seem to be quite the same
 		# as the ones displayed in Illustrator. I'm not sure if this is due
@@ -67,6 +74,11 @@ CGDraw = ( options ) ->
 		coordArr[1] = round2 coordArr[1] + org[1]
 		coordArr.join ", "
 
+	SVG_fixCoords = ( coordArr ) ->
+		coordArr[0] = round2 coordArr[0] + org[0]
+		coordArr[1] = round2 doc.height - (org[1] + coordArr[1])
+		coordArr.join ","
+
 	checkLinear = ( currPoint, prevPoint ) ->
 		p1 = (prevPoint.anchor[0] is prevPoint.rightDirection[0] && prevPoint.anchor[1] is prevPoint.rightDirection[1])
 		p2 = (currPoint.anchor[0] is currPoint.leftDirection[0] && currPoint.anchor[1] is currPoint.leftDirection[1])
@@ -77,6 +89,12 @@ CGDraw = ( options ) ->
 
 	CG_cubic = ( currPoint, prevPoint ) ->
 		"CGContextAddCurveToPoint(#{@context}, #{@fixCoords prevPoint.rightDirection}, #{@fixCoords currPoint.leftDirection}, #{@fixCoords currPoint.anchor})"
+
+	SVG_linear = ( currPoint ) ->
+		"L#{@fixCoords currPoint.anchor}"
+
+	SVG_cubic = ( currPoint, prevPoint ) ->
+		"C#{@fixCoords prevPoint.rightDirection},#{@fixCoords currPoint.leftDirection},#{@fixCoords currPoint.anchor}"
 
 	class CGDrawing
 
@@ -89,6 +107,26 @@ CGDraw = ( options ) ->
 			{ ctx: @context, bnd: @bounds } = options
 
 			switch options.type
+				when 'SVG'
+					@fixCoords = SVG_fixCoords
+					@linear = SVG_linear
+					@cubic = SVG_cubic
+
+					@start = ->
+						@appendLine "<svg viewBox='0 0 #{doc.width} #{doc.height}' version='1.1' xmlns='http://www.w3.org/2000/svg'>"
+						@indent = "\t"
+
+					@appendPath = @appendPathSVG
+					@close = ->
+						if @lastLine
+							@lastLine.push '"/>'
+							@appendLine @lastLine.join ''
+
+					@merge = ->
+						@indent = ""
+						@appendLine "</svg>"
+						@result.join "\n"
+
 				when 'CoreGraphics'
 					if "swift" is options.lang
 						@initClosure = @initClosureSwift
@@ -217,6 +255,65 @@ CGDraw = ( options ) ->
 					@appendLine "CGContextClosePath(#{@context})"
 				else
 					@appendLine @cubic currPoint, prevPoint
+
+		collectColorsSVG: ( path ) ->
+			fillColor   = path.fillColor
+			strokeColor = path.strokeColor
+			fill = undefined
+			stroke = undefined
+
+			if manageColor[fillColor.typename + 'SVG']
+				fill = manageColor[fillColor.typename + 'SVG']( fillColor )
+				fill += path.opacity/100 + ')'
+
+			if manageColor[strokeColor.typename + 'SVG']
+				stroke = manageColor[strokeColor.typename + 'SVG']( strokeColor )
+				stroke += path.opacity/100 + ')'
+
+			[fill, stroke]
+
+		appendPathSVG: ( path ) ->
+			[fill, stroke] = @collectColorsSVG path
+			strokeSize = if path.stroked then path.strokeWidth else 0
+			fillChanged = fill isnt @lastFill
+			strokeChanged = stroke isnt @lastStroke
+			strokeSizeChanged = strokeSize isnt @lastStrokeSize
+			line = @lastLine
+
+			if fillChanged or strokeChanged or strokeSizeChanged
+				if line
+					line.push '"/>'
+					@appendLine line.join ''
+
+				line = [ '<path ' ]
+				line.push 'fill="' + fill + '" ' if fill
+				line.push 'stroke="' + stroke + '" ' if stroke and strokeSize isnt 0
+				line.push 'stroke-width="' + strokeSize + '" ' if strokeSize isnt 0
+				line.push 'd="'
+				@lastFill = fill
+				@lastStroke = stroke
+				@lastStrokeSize = strokeSize
+
+			points = path.pathPoints
+			if points.length > 0
+				line.push "M#{@fixCoords points[0].anchor}"
+
+				for j in [1...points.length] by 1
+					currPoint = points[j]
+					prevPoint = points[j-1]
+
+					if checkLinear currPoint, prevPoint
+						line.push @linear currPoint
+					else
+						line.push @cubic currPoint, prevPoint
+
+				prevPoint = points[points.length-1]
+				currPoint = points[0]
+
+				unless checkLinear currPoint, prevPoint
+					line.push @cubic currPoint, prevPoint
+
+			@lastLine = line
 
 		close: ->
 			@appendLine "CGContextDrawPath(#{@context}, kCGPathFillStroke)"
