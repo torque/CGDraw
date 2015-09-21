@@ -135,7 +135,7 @@ CGDraw = ( options ) ->
 					@appendPath = @appendPathSVG
 					@close = ->
 						if @lastLine
-							@lastLine.push '"/>'
+							@lastLine.push "'/>"
 							@appendLine @lastLine.join ''
 
 					@merge = ->
@@ -300,14 +300,14 @@ CGDraw = ( options ) ->
 
 			if fillChanged or strokeChanged or strokeSizeChanged
 				if line
-					line.push '"/>'
+					line.push "'/>"
 					@appendLine line.join ''
 
 				line = [ '<path ' ]
-				line.push 'fill="' + fill + '" ' if fill
-				line.push 'stroke="' + stroke + '" ' if stroke and strokeSize isnt 0
-				line.push 'stroke-width="' + strokeSize + '" ' if strokeSize isnt 0
-				line.push 'd="'
+				line.push "fill='#{fill}' " if fill
+				line.push "stroke='#{stroke}' " if stroke and strokeSize isnt 0
+				line.push "stroke-width='#{strokeSize}' " if strokeSize isnt 0
+				line.push "d='"
 				@lastFill = fill
 				@lastStroke = stroke
 				@lastStrokeSize = strokeSize
