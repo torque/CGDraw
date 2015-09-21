@@ -33,8 +33,11 @@ CGDraw = ( options ) ->
 				value: "#{r}, #{g}, #{b}, "
 			}
 
-		RGBColorSVG: ( color ) ->
-			"rgba(" + "#{Math.round color.red},#{Math.round color.green},#{Math.round color.blue},".toUpperCase( )
+		RGBColorSVG: ( color, opacity ) ->
+			if opacity is 1
+				"rgb(#{Math.round color.red},#{Math.round color.green},#{Math.round color.blue})"
+			else
+				"rgba(#{Math.round color.red},#{Math.round color.green},#{Math.round color.blue}, #{round2 opacity})"
 
 		GrayColor: ( color ) ->
 			# CGContextSetGrayFillColor
@@ -44,9 +47,12 @@ CGDraw = ( options ) ->
 				value: "#{pct}, #{pct}, #{pct}, "
 			}
 
-		GrayColorSVG: ( color ) ->
+		GrayColorSVG: ( color, opacity ) ->
 			value = Math.round (100 - color.gray)*255/100
-			"rgba(" + "#{value},#{value},#{value},".toUpperCase( )
+			if opacity is 1
+				"rgb(#{value},#{value},#{value})"
+			else
+				"rgba(#{value},#{value},#{value},#{round2 opacity})"
 
 		# The CMYK colors that CG displays do not seem to be quite the same
 		# as the ones displayed in Illustrator. I'm not sure if this is due
@@ -281,12 +287,10 @@ CGDraw = ( options ) ->
 			stroke = undefined
 
 			if manageColor[fillColor.typename + 'SVG']
-				fill = manageColor[fillColor.typename + 'SVG']( fillColor )
-				fill += path.opacity/100 + ')'
+				fill = manageColor[fillColor.typename + 'SVG'] fillColor, path.opacity/100
 
 			if manageColor[strokeColor.typename + 'SVG']
-				stroke = manageColor[strokeColor.typename + 'SVG']( strokeColor )
-				stroke += path.opacity/100 + ')'
+				stroke = manageColor[strokeColor.typename + 'SVG'] strokeColor, path.opacity/100
 
 			[fill, stroke]
 
