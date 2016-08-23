@@ -71,7 +71,7 @@ CGDraw = ( options ) ->
 	IOS_fixCoords = ( coordArr ) ->
 		coordArr[0] = round2 (coordArr[0] + org[0])*@scaleX
 		coordArr[1] = round2 (doc.height - (org[1] + coordArr[1]))*@scaleY
-		coordArr.join " "
+		coordArr.join ", "
 
 	# for CoreGraphics on mac, the origin is the bottom-left corner.
 	Mac_fixCoords = ( coordArr ) ->
